@@ -1,1 +1,70 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import axios from 'axios'
+import { LockKeyhole } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
+import { toast } from 'vue-sonner'
 
+const password = ref('')
+const loading = ref(false)
+const router = useRouter()
+
+const handleLogin = async () => {
+  if (!password.value) return
+
+  loading.value = true
+  try {
+    const { data } = await axios.post('/api/auth/verify', {
+      password: password.value,
+    })
+
+    if (data.code === 0) {
+      // 核心：存入 sessionStorage，关闭浏览器后自动丢失
+      sessionStorage.setItem('site_access_token', 'authorized')
+      toast.success('验证通过')
+
+      // 跳转回之前想访问的页面，或者首页
+      const redirect = (router.currentRoute.value.query.redirect as string) || '/'
+      router.replace(redirect)
+    } else {
+      toast.error(data.msg || '口令错误')
+    }
+  } catch (e) {
+    toast.error('验证请求失败，请检查网络')
+  } finally {
+    loading.value = false
+  }
+}
+</script>
+
+<template>
+  <div class="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <div
+      class="w-full max-w-sm rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm"
+    >
+      <div
+        class="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-600"
+      >
+        <LockKeyhole class="h-6 w-6" />
+      </div>
+
+      <h1 class="mb-2 text-xl font-semibold text-gray-900">访问受限</h1>
+      <p class="mb-6 text-sm text-gray-500">请输入访问口令以继续使用图床服务</p>
+
+      <div class="space-y-4">
+        <input
+          v-model="password"
+          type="password"
+          placeholder="请输入口令..."
+          class="w-full rounded-md border border-gray-200 bg-transparent h-10 px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+          @keyup.enter="handleLogin"
+        />
+
+        <Button class="w-full" @click="handleLogin" :disabled="loading">
+          {{ loading ? '验证中...' : '解锁访问' }}
+        </Button>
+      </div>
+    </div>
+  </div>
+</template>
