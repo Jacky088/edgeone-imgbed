@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
-// 1. 引入 Toaster 组件
 import { Toaster } from 'vue-sonner'
 import { useTheme } from '@/composables/useTheme'
 
-// 2. 获取 theme，让弹窗也跟随日间/夜间模式变化
 const { theme } = useTheme()
 </script>
 
@@ -16,13 +14,43 @@ const { theme } = useTheme()
     :theme="theme" 
     richColors 
     closeButton
-    class="!z-[99999]" 
+    class="!z-[99999]"
+    :toastOptions="{
+      class: '!rounded-xl !border-0 !shadow-2xl !py-3 !px-5 !text-sm !font-medium !gap-3',
+      style: {
+        marginTop: '2rem' // 距离顶部稍微多一点距离
+      }
+    }"
   />
 </template>
 
 <style>
-/* 全局强制样式修复：防止 Tailwind v4 的重置影响 Toaster 的定位 */
+/* 🚑 紧急样式补丁 
+  如果 vue-sonner 的默认 CSS 没加载成功，这段代码会强制把弹窗固定在屏幕正上方居中。
+  这能完美解决弹窗出现在左下角的问题。
+*/
 :root {
-  --toaster-z-index: 99999 !important;
+  --toaster-width: 356px;
+}
+
+/* 强制定位容器 */
+ol[data-sonner-toaster] {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  height: 100vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important; /* 核心：水平居中 */
+  justify-content: flex-start !important; /* 核心：从顶部开始 */
+  pointer-events: none !important;
+  z-index: 99999 !important;
+}
+
+/* 恢复内部点击事件 */
+li[data-sonner-toast] {
+  pointer-events: auto !important;
 }
 </style>
