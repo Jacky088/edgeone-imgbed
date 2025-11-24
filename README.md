@@ -54,6 +54,7 @@ pnpm build
 BASE_IMG_URL=你的图床域名，结尾带斜杠，例如：https://img.example.com/
 SLUG_IMG=CNB图床仓库名，例如：your-username/your-repo
 TOKEN_IMG=CNB图床仓库Token
+SITE_PASSWORD=设置口令验证
 ```
 
 ## 获取 TOKEN_IMG
