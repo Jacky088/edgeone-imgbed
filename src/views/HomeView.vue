@@ -2,9 +2,9 @@
 import FileUploader from '@/components/public/FileUploader.vue'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Upload, Settings, LogOut, Copy, Check } from 'lucide-vue-next' // [新增] 引入 Copy 图标
+import { Upload, Settings, LogOut, Copy } from 'lucide-vue-next'
 import ThemeToggle from '@/components/ThemeToggle.vue'
-import { toast } from 'vue-sonner' // [引用] 引入 toast
+import { toast } from 'vue-sonner'
 
 const router = useRouter()
 
@@ -20,14 +20,17 @@ const handleLogout = () => {
   router.push('/login')
 }
 
-// [新增] 复制功能函数
+// 复制功能
 const copyToClipboard = async (text: string | undefined) => {
   if (!text) return
   try {
+    // 使用 Clipboard API
     await navigator.clipboard.writeText(text)
     toast.success('复制成功！')
   } catch (err) {
-    toast.error('复制失败，请手动复制')
+    // 降级处理或提示错误 (HTTP环境下可能无法使用 clipboard API)
+    console.error(err)
+    toast.error('复制失败，请尝试手动选中复制')
   }
 }
 </script>
@@ -138,27 +141,37 @@ const copyToClipboard = async (text: string | undefined) => {
               </div>
             </div>
 
-            <div class="border-t border-dashed border-gray-100 pt-4 space-y-4 dark:border-gray-800">
-              <div class="group">
-                <p class="mb-1 text-xs font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">CNB原图链接</p>
-                <div
-                  @click="copyToClipboard(uploadInfo.urlOriginal)"
-                  class="cursor-pointer break-all text-xs text-gray-500 transition-colors hover:text-gray-900 active:text-blue-600 dark:text-gray-400 dark:hover:text-gray-200"
-                  title="点击复制"
-                >
-                  {{ uploadInfo.urlOriginal }}
-                </div>
+            <div class="border-t border-dashed border-gray-100 pt-2 dark:border-gray-800"></div>
+
+            <div class="group">
+              <div class="mb-1.5 flex items-center justify-between">
+                <p class="flex items-center text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                  CNB原图链接
+                  </p>
+                <span class="text-[10px] text-gray-400 opacity-0 transition-opacity group-hover:opacity-100">点击复制</span>
               </div>
+              <div 
+                @click="copyToClipboard(uploadInfo.urlOriginal)"
+                class="relative cursor-pointer rounded-md border border-gray-100 bg-gray-50 p-3 font-mono text-sm text-gray-600 transition-all hover:border-gray-300 hover:bg-gray-100 hover:text-gray-900 hover:shadow-sm active:scale-[0.99] dark:border-gray-800 dark:bg-gray-800 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+              >
+                <div class="break-all pr-6">{{ uploadInfo.urlOriginal }}</div>
+                <Copy class="absolute right-2 top-3 h-4 w-4 text-gray-400 opacity-50 dark:text-gray-500" />
+              </div>
+            </div>
               
-              <div v-if="uploadInfo.thumbnailOriginalUrl" class="group">
-                <p class="mb-1 text-xs font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">CNB缩略图链接</p>
-                <div
-                  @click="copyToClipboard(uploadInfo.thumbnailOriginalUrl)"
-                  class="cursor-pointer break-all text-xs text-gray-500 transition-colors hover:text-gray-900 active:text-blue-600 dark:text-gray-400 dark:hover:text-gray-200"
-                  title="点击复制"
-                >
-                  {{ uploadInfo.thumbnailOriginalUrl }}
-                </div>
+            <div v-if="uploadInfo.thumbnailOriginalUrl" class="group">
+               <div class="mb-1.5 flex items-center justify-between">
+                <p class="flex items-center text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                  CNB缩略图链接
+                </p>
+                <span class="text-[10px] text-gray-400 opacity-0 transition-opacity group-hover:opacity-100">点击复制</span>
+              </div>
+              <div 
+                @click="copyToClipboard(uploadInfo.thumbnailOriginalUrl)"
+                class="relative cursor-pointer rounded-md border border-gray-100 bg-gray-50 p-3 font-mono text-sm text-gray-600 transition-all hover:border-gray-300 hover:bg-gray-100 hover:text-gray-900 hover:shadow-sm active:scale-[0.99] dark:border-gray-800 dark:bg-gray-800 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+              >
+                <div class="break-all pr-6">{{ uploadInfo.thumbnailOriginalUrl }}</div>
+                <Copy class="absolute right-2 top-3 h-4 w-4 text-gray-400 opacity-50 dark:text-gray-500" />
               </div>
             </div>
             
