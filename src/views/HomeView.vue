@@ -3,6 +3,7 @@ import FileUploader from '@/components/public/FileUploader.vue'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Upload, Settings, LogOut } from 'lucide-vue-next'
+import ThemeToggle from '@/components/ThemeToggle.vue' // [新增]
 
 const router = useRouter()
 
@@ -14,29 +15,30 @@ const uploadInfo = ref<{
 } | null>(null)
 
 const handleLogout = () => {
-  // 清除口令验证状态
   sessionStorage.removeItem('site_access_token')
-  // 返回登录页
   router.push('/login')
 }
 </script>
 
 <template>
-  <div class="relative min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+  <div class="relative min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 transition-colors duration-300">
     
     <div class="absolute right-6 top-6 flex items-center gap-2">
+      <ThemeToggle />
+      
+      <div class="h-4 w-px bg-gray-200 dark:bg-gray-700"></div>
+
       <button
         @click="router.push('/admin')"
-        class="flex items-center gap-1.5 rounded-lg border border-transparent px-3 py-2 text-sm font-medium text-gray-600 transition-all hover:border-gray-200 hover:bg-white hover:text-blue-600 hover:shadow-sm active:scale-95"
+        class="flex items-center gap-1.5 rounded-lg border border-transparent px-3 py-2 text-sm font-medium text-gray-600 transition-all hover:border-gray-200 hover:bg-white hover:text-blue-600 hover:shadow-sm active:scale-95 dark:text-gray-400 dark:hover:border-gray-700 dark:hover:bg-gray-800 dark:hover:text-blue-400"
         title="进入管理后台"
       >
         <Settings class="h-4 w-4" />
         <span>管理后台</span>
       </button>
-      <div class="h-4 w-px bg-gray-200"></div>
       <button
         @click="handleLogout"
-        class="flex items-center gap-1.5 rounded-lg border border-transparent px-3 py-2 text-sm font-medium text-gray-600 transition-all hover:border-red-100 hover:bg-red-50 hover:text-red-600 active:scale-95"
+        class="flex items-center gap-1.5 rounded-lg border border-transparent px-3 py-2 text-sm font-medium text-gray-600 transition-all hover:border-red-100 hover:bg-red-50 hover:text-red-600 active:scale-95 dark:text-gray-400 dark:hover:border-red-900/30 dark:hover:bg-red-900/20 dark:hover:text-red-400"
         title="退出登录"
       >
         <LogOut class="h-4 w-4" />
@@ -47,12 +49,12 @@ const handleLogout = () => {
     <div class="flex min-h-[calc(100vh-4px)] flex-col items-center justify-center px-4 py-12">
       <div class="mb-8 text-center">
         <div class="mb-4 flex items-center justify-center gap-3">
-          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-200">
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/30">
             <Upload class="h-6 w-6" :stroke-width="2.5" />
           </div>
-          <h1 class="text-3xl font-bold tracking-tight text-gray-900">图片上传</h1>
+          <h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">图片上传</h1>
         </div>
-        <p class="mt-2 text-sm text-gray-500">支持拖拽上传 • 自动压缩 • 生成缩略图</p>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">支持拖拽上传 • 自动压缩 • 生成缩略图</p>
       </div>
 
       <div class="w-full max-w-lg">
@@ -79,27 +81,27 @@ const handleLogout = () => {
       >
         <div
           v-if="uploadInfo"
-          class="mt-8 w-full max-w-lg overflow-hidden rounded-2xl border border-gray-100 bg-white/80 shadow-sm backdrop-blur-sm"
+          class="mt-8 w-full max-w-lg overflow-hidden rounded-2xl border border-gray-100 bg-white/80 shadow-sm backdrop-blur-sm transition-colors dark:border-gray-800 dark:bg-gray-900/80"
         >
           <div
-            class="border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4"
+            class="border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 dark:border-gray-800 dark:from-green-900/20 dark:to-emerald-900/20"
           >
             <div class="flex items-center gap-2">
               <div class="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
-              <h3 class="text-sm font-medium text-gray-700">上传完成</h3>
+              <h3 class="text-sm font-medium text-gray-700 dark:text-gray-200">上传完成</h3>
             </div>
           </div>
           <div class="space-y-4 p-6">
             <div class="group">
-              <p class="mb-1.5 flex items-center text-xs font-semibold uppercase tracking-wider text-gray-400">
+              <p class="mb-1.5 flex items-center text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                 代理原图链接
-                <span class="ml-2 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600">CDN加速</span>
+                <span class="ml-2 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">CDN加速</span>
               </p>
-              <div class="relative rounded-md bg-gray-50 p-2 font-mono text-sm text-gray-600 transition-colors group-hover:bg-blue-50/50">
+              <div class="relative rounded-md bg-gray-50 p-2 font-mono text-sm text-gray-600 transition-colors group-hover:bg-blue-50/50 dark:bg-gray-800 dark:text-gray-300 dark:group-hover:bg-blue-900/20">
                 <a
                   :href="uploadInfo.url"
                   target="_blank"
-                  class="break-all hover:text-blue-600 hover:underline"
+                  class="break-all hover:text-blue-600 hover:underline dark:hover:text-blue-400"
                 >
                   {{ uploadInfo.url }}
                 </a>
@@ -107,39 +109,39 @@ const handleLogout = () => {
             </div>
             
             <div v-if="uploadInfo.thumbnailUrl" class="group">
-              <p class="mb-1.5 flex items-center text-xs font-semibold uppercase tracking-wider text-gray-400">
+              <p class="mb-1.5 flex items-center text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                 代理缩略图链接
-                <span class="ml-2 rounded bg-purple-50 px-1.5 py-0.5 text-[10px] text-purple-600">CDN加速</span>
+                <span class="ml-2 rounded bg-purple-50 px-1.5 py-0.5 text-[10px] text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">CDN加速</span>
               </p>
-              <div class="relative rounded-md bg-gray-50 p-2 font-mono text-sm text-gray-600 transition-colors group-hover:bg-purple-50/50">
+              <div class="relative rounded-md bg-gray-50 p-2 font-mono text-sm text-gray-600 transition-colors group-hover:bg-purple-50/50 dark:bg-gray-800 dark:text-gray-300 dark:group-hover:bg-purple-900/20">
                 <a
                   :href="uploadInfo.thumbnailUrl"
                   target="_blank"
-                  class="break-all hover:text-purple-600 hover:underline"
+                  class="break-all hover:text-purple-600 hover:underline dark:hover:text-purple-400"
                 >
                   {{ uploadInfo.thumbnailUrl }}
                 </a>
               </div>
             </div>
 
-            <div class="border-t border-dashed border-gray-100 pt-3 space-y-3">
+            <div class="border-t border-dashed border-gray-100 pt-3 space-y-3 dark:border-gray-800">
               <div class="group">
-                <p class="mb-1 text-xs font-medium uppercase tracking-wider text-gray-400">CNB原图链接</p>
+                <p class="mb-1 text-xs font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">CNB原图链接</p>
                 <a
                   :href="uploadInfo.urlOriginal"
                   target="_blank"
-                  class="block break-all text-xs text-gray-400 hover:text-gray-600"
+                  class="block break-all text-xs text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
                 >
                   {{ uploadInfo.urlOriginal }}
                 </a>
               </div>
               
               <div v-if="uploadInfo.thumbnailOriginalUrl" class="group">
-                <p class="mb-1 text-xs font-medium uppercase tracking-wider text-gray-400">CNB缩略图链接</p>
+                <p class="mb-1 text-xs font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">CNB缩略图链接</p>
                 <a
                   :href="uploadInfo.thumbnailOriginalUrl"
                   target="_blank"
-                  class="block break-all text-xs text-gray-400 hover:text-gray-600"
+                  class="block break-all text-xs text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
                 >
                   {{ uploadInfo.thumbnailOriginalUrl }}
                 </a>
