@@ -1,10 +1,8 @@
-# HW-img-host
+# Edgeone-imgbed
 
 一个简单的无服务器图片托管服务，支持图片上传、自动压缩和缩略图生成.
 
 基于腾讯云 EdgeOne Pages Functions 和 CNB 仓库免费对象存储服务构建.
-
-项目用到了，单独抽离出来方便个人使用。
 
 
 ## 功能特性
