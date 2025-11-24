@@ -9,15 +9,15 @@ const app = express()
 
 const requestConfig = {
   responseType: 'arraybuffer',
-  timeout: 15000, // 增加超时防止大图失败
+  timeout: 5000,
   headers: {
     Accept: 'image/*, */*',
     'User-Agent': 'SeerImageProxy/1.0 (+https://seerinfo.yuyuqaq.cn)',
   },
 }
-// 这里的 BASE_URL 是 CNB 的资源基地址
-const REMOTE_BASE_URL = 'https://cnb.cool/' + process.env.SLUG_IMG + '/-/imgs/'
+const BASE_URL = 'https://cnb.cool/' + process.env.SLUG_IMG + '/-/imgs/'
 
+// 解析 JSON body
 app.use(express.json())
 
 app.use((req, res, next) => {
@@ -29,13 +29,17 @@ app.get('/', (req, res) => {
   res.json({ message: 'Hello from Express on Node Functions!' })
 })
 
-// 身份验证
+// [新增] 身份验证接口
 app.post('/auth/verify', (req, res) => {
   const { password } = req.body
+  // 获取环境变量中的密码
   const sysPassword = process.env.SITE_PASSWORD
+
+  // 如果未设置环境变量，默认开放访问（或者你可以改为返回错误）
   if (!sysPassword) {
     return res.json(reply(0, '未设置密码，开放访问', { token: 'open-access' }))
   }
+
   if (password === sysPassword) {
     return res.json(reply(0, '验证通过', { token: 'authorized' }))
   } else {
@@ -43,29 +47,23 @@ app.post('/auth/verify', (req, res) => {
   }
 })
 
-// 管理后台接口
+// 管理接口：获取图片列表
 app.get('/admin/list', (req, res) => {
   const list = store.getAll()
   res.json(reply(0, '获取成功', list))
 })
 
+// 管理接口：删除图片 (仅删除记录)
 app.post('/admin/delete', (req, res) => {
   const { id } = req.body
   if (!id) return res.status(400).json(reply(1, 'ID不能为空', null))
+
   store.remove(id)
   res.json(reply(0, '删除成功', null))
 })
 
-// ============================================================
-// 核心修复：代理路由
-// 这里的 /image/:path(*) 实际上对应外网的 /api/image/...
-// ============================================================
-app.get('/image/:path(*)', (req, res) => {
-  const handler = createProxyHandler(REMOTE_BASE_URL, requestConfig)
-  return handler(req, res)
-})
+app.get('/img/*path', createProxyHandler(BASE_URL, requestConfig))
 
-// 上传接口
 app.post(
   '/upload/img',
   upload.fields([
@@ -82,42 +80,34 @@ app.post(
       const mainFile = files.file?.[0]
       const thumbnailFile = files.thumbnail?.[0]
 
-      // 1. 上传主图
+      // 上传主图
       const mainResult = await uploadToCnb({
         fileBuffer: mainFile.buffer,
         fileName: mainFile.originalname,
       })
 
-      // 2. 构建访问链接 (核心修复)
-      // 这里的 baseUrl 是你的自定义域名 (例如 https://imgbed.huzz.cn)
-      let baseUrl = process.env.BASE_IMG_URL || ''
-      // 移除末尾斜杠
-      if (baseUrl.endsWith('/')) {
-        baseUrl = baseUrl.slice(0, -1)
-      }
+      const baseUrl = process.env.BASE_IMG_URL
 
-      // 提取文件名 (例如 c6Gkt...)
-      const mainImgName = extractImageName(mainResult.url)
-      
-      // 拼接完整路径：域名 + 函数前缀 + 代理路由 + 文件名
-      // 结果示例: https://imgbed.huzz.cn/api/image/c6Gkt...
-      const mainUrl = `${baseUrl}/api/image/${mainImgName}`
+      const mainImgPath = extractImagePath(mainResult.url)
+      const mainUrl = baseUrl + mainImgPath
 
       let thumbnailUrl = null
       let thumbnailAssets = null
 
-      // 3. 上传缩略图
+      // 上传缩略图
       if (thumbnailFile) {
         const thumbnailResult = await uploadToCnb({
           fileBuffer: thumbnailFile.buffer,
           fileName: thumbnailFile.originalname,
         })
-        const thumbnailImgName = extractImageName(thumbnailResult.url)
-        thumbnailUrl = `${baseUrl}/api/image/${thumbnailImgName}`
+
+        const thumbnailImgPath = extractImagePath(thumbnailResult.url)
+        thumbnailUrl = baseUrl + thumbnailImgPath
         thumbnailAssets = thumbnailResult.assets
       }
 
-      // 4. 记录到本地存储
+      // 保存上传记录
+      // 使用 Node.js 内置 crypto.randomUUID()
       const record: ImageRecord = {
         id: crypto.randomUUID(),
         name: mainFile.originalname,
@@ -138,7 +128,7 @@ app.post(
           hasThumbnail: !!thumbnailFile,
         }),
       )
-    } catch (err: any) {
+    } catch (err) {
       console.error('上传失败:', err.response?.data || err.message)
       res.status(500).json(reply(1, '上传失败', err.message))
     }
@@ -146,19 +136,15 @@ app.post(
 )
 
 /**
- * 辅助函数：从 CNB 完整 URL 中提取纯文件名
- * 输入: https://cnb.cool/.../-/imgs/abc.webp
- * 输出: abc.webp
+ * 从 URL 中提取图片路径
  */
-function extractImageName(url: string) {
+function extractImagePath(url) {
   if (url.includes('-/imgs/')) {
     return url.split('-/imgs/')[1]
   } else if (url.includes('-/files/')) {
     return url.split('-/files/')[1]
   }
-  // 如果没有特定标识，尝试取最后一部分
-  const parts = url.split('/')
-  return parts[parts.length - 1]
+  return url
 }
 
 export default app
