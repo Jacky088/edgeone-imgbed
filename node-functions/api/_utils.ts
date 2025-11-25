@@ -1,81 +1,56 @@
 /**
- * CNB Generic Packages (制品库) 工具类
+ * 上传文件到 CNB 对象存储
+ * @param {object} param0 - 上传参数
+ * @param {Buffer} param0.fileBuffer - 文件的 Buffer
+ * @param {string} param0.fileName - 文件名
+ * @param {string} [param0.type='imgs'] - 上传类型，默认为 'imgs'
+ * @returns 上传结果包含资源信息和URL
  */
+async function uploadToCnb({ fileBuffer, fileName, type = 'imgs' }) {
+  const fileSize = fileBuffer.length
+  const metaUrl = `https://api.cnb.cool/${process.env.SLUG_IMG}/-/upload/${type}`
 
-// 定义包配置
-export const PACKAGE_NAME = 'imgbed-assets'
-export const PACKAGE_VERSION = 'v1'
-
-/**
- * 上传文件到 CNB 制品库 (Generic Packages)
- * 文档: https://docs.cnb.cool/zh/artifacts/generic_packages.html
- */
-async function uploadToCnb({ fileBuffer, fileName }) {
-  const slug = process.env.SLUG_IMG
-  if (!slug || !process.env.TOKEN_IMG) {
-    throw new Error('缺少环境变量 SLUG_IMG 或 TOKEN_IMG')
-  }
-
-  // 使用 PUT 接口上传到制品库
-  const url = `https://api.cnb.cool/${slug}/-/packages/generic/${PACKAGE_NAME}/${PACKAGE_VERSION}/${fileName}`
-
-  const resp = await fetch(url, {
-    method: 'PUT',
+  const metaResp = await fetch(metaUrl, {
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${process.env.TOKEN_IMG}`,
-      'Content-Type': 'application/octet-stream',
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify({ name: fileName, size: fileSize }),
+  })
+
+  if (!metaResp.ok) {
+    throw new Error('Failed to get upload metadata')
+  }
+
+  const { assets, upload_url } = await metaResp.json()
+
+  const uploadResp = await fetch(upload_url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/octet-stream' },
     body: fileBuffer,
   })
 
-  if (!resp.ok) {
-    const errText = await resp.text()
-    throw new Error(`CNB Upload Error: ${resp.status} - ${errText}`)
+  if (!uploadResp.ok) {
+    throw new Error('Failed to upload image')
   }
 
-  // 制品库不返回直接的 assets 结构，我们需要手动构造返回
-  // 这里的 path 结构要符合 CNB 制品库的下载路径规则
-  return {
-    path: `/${fileName}`,
-    filename: fileName
-  }
+  return { assets, url: assets['path'] }
 }
 
 /**
- * [新增] 物理删除文件
- */
-async function deleteFromCnb(fileName) {
-  const slug = process.env.SLUG_IMG
-  const url = `https://api.cnb.cool/${slug}/-/packages/generic/${PACKAGE_NAME}/${PACKAGE_VERSION}/${fileName}`
-
-  const resp = await fetch(url, {
-    method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${process.env.TOKEN_IMG}`,
-    },
-  })
-
-  // 200-299 视为成功，404 也视为成功(文件已不存在)
-  if (!resp.ok && resp.status !== 404) {
-    const errText = await resp.text()
-    throw new Error(`CNB Delete Error: ${resp.status} - ${errText}`)
-  }
-  
-  return true
-}
-
-/**
- * 代理处理函数 (保持你提供的稳定版本逻辑，不做大改)
+ * 创建代理处理函数
+ * @param {string} baseUrl 基础URL
+ * @param {object} requestConfig 请求配置
+ * @returns 路由处理函数
  */
 function createProxyHandler(baseUrl, requestConfig) {
   return async (req, res) => {
     try {
-      // 兼容处理：有时候 req.params.path 是数组，有时候是字符串
-      const rawPath = req.params.path
-      const urlPath = Array.isArray(rawPath) ? rawPath.join('/') : rawPath
+      const urlPath = Array.isArray(req.params.path) ? req.params.path.join('/') : req.params.path
 
       if (!urlPath || urlPath.includes('..')) {
-        return res.status(400).json({ error: 'Invalid path' })
+        return res.status(400).json({ error: 'Invalid image path' })
       }
 
       const targetUrl = new URL(urlPath, baseUrl).toString()
@@ -83,6 +58,7 @@ function createProxyHandler(baseUrl, requestConfig) {
       const fetchOptions = {
         method: 'GET',
         headers: requestConfig?.headers || {},
+        signal: requestConfig?.timeout ? AbortSignal.timeout(requestConfig.timeout) : undefined,
       }
 
       const response = await fetch(targetUrl, fetchOptions)
@@ -92,17 +68,24 @@ function createProxyHandler(baseUrl, requestConfig) {
         const arrayBuffer = await response.arrayBuffer()
 
         res.setHeader('Content-Type', contentType)
-        res.setHeader('Cache-Control', 'public, max-age=31536000')
         res.send(Buffer.from(arrayBuffer))
       } else {
-        if (response.status === 404) return res.status(404).send('Not Found')
-        res.status(response.status).json({ error: 'Upstream Error' })
+        res.status(response.status).json({
+          error: `Upstream error: ${response.statusText}`,
+        })
       }
     } catch (e) {
-      console.error(`Proxy Error: ${e.message}`)
-      if (!res.headersSent) res.status(500).json({ error: 'Internal Error' })
+      console.error(`❌ [Proxy Error] ${e.message}`)
+      if (e.name === 'TimeoutError' || e.name === 'AbortError') {
+        return res.status(504).json({ error: 'Upstream request timed out' })
+      }
+      if (e instanceof TypeError && e.message.includes('fetch')) {
+        return res.status(502).json({ error: 'Failed to fetch from upstream' })
+      }
+      return res.status(500).json({ error: 'Internal server error' })
     }
   }
 }
 
-export { uploadToCnb, deleteFromCnb, createProxyHandler }
+export { uploadToCnb, createProxyHandler }
+
