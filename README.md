@@ -49,3 +49,6 @@ SITE_PASSWORD=设置口令验证
 4. 点击“生成Token”按钮，复制生成的Token。
 
 
+## 感谢
+
+WhY15w的hw-img-host(https://github.com/WhY15w/hw-img-host)
