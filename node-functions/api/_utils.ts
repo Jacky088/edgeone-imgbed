@@ -1,8 +1,10 @@
 /**
  * CNB Generic Packages (制品库) 工具类
  */
+// [修复] 静态引入 stream，防止动态 import 导致打包/运行错误
+import { Readable } from 'stream'
 
-// [重要] 定义并导出包常量，default.ts 依赖这些变量
+// 定义并导出包常量
 export const PACKAGE_NAME = 'imgbed-assets'
 export const PACKAGE_VERSION = 'v1'
 
@@ -11,8 +13,10 @@ export const PACKAGE_VERSION = 'v1'
  */
 export async function uploadToCnb({ fileBuffer, fileName }: { fileBuffer: Buffer, fileName: string }) {
   const slug = process.env.SLUG_IMG
+  // 增加一些基本的环境变量检查日志
   if (!slug || !process.env.TOKEN_IMG) {
-    throw new Error('Environment variables SLUG_IMG or TOKEN_IMG are missing')
+    console.error('Missing env vars: SLUG_IMG or TOKEN_IMG')
+    throw new Error('Environment configuration error')
   }
 
   const url = `https://api.cnb.cool/${slug}/-/packages/generic/${PACKAGE_NAME}/${PACKAGE_VERSION}/${fileName}`
@@ -88,9 +92,10 @@ export function createProxyHandler(baseUrl: string, requestConfig: any) {
         
         res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
 
-        // 兼容 Node 环境的流式传输
-        const arrayBuffer = await response.arrayBuffer()
-        res.send(Buffer.from(arrayBuffer))
+        // [修复] 使用 Node.js 标准流传输，兼容性最好
+        // @ts-ignore
+        const nodeStream = Readable.fromWeb(response.body)
+        nodeStream.pipe(res)
       } else {
         if (response.status === 404) {
            return res.status(404).send('Not Found')
