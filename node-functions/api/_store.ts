@@ -17,6 +17,8 @@ export interface ImageRecord {
 
 async function fetchDB(): Promise<ImageRecord[]> {
   const slug = process.env.SLUG_IMG
+  if (!slug) return [] // 防止环境变量未设置导致崩溃
+
   const url = `https://api.cnb.cool/${slug}/-/packages/generic/${PACKAGE_NAME}/${PACKAGE_VERSION}/${DB_FILENAME}`
   
   try {
@@ -30,7 +32,7 @@ async function fetchDB(): Promise<ImageRecord[]> {
 
     if (resp.status === 404) return []
     if (!resp.ok) {
-      console.warn('Fetch DB failed:', resp.status)
+      console.warn('Fetch DB failed status:', resp.status)
       return []
     }
 
@@ -44,12 +46,14 @@ async function fetchDB(): Promise<ImageRecord[]> {
 
 async function saveDB(data: ImageRecord[]) {
   const slug = process.env.SLUG_IMG
+  if (!slug) return
+
   const url = `https://api.cnb.cool/${slug}/-/packages/generic/${PACKAGE_NAME}/${PACKAGE_VERSION}/${DB_FILENAME}`
   
   try {
     const jsonString = JSON.stringify(data, null, 2)
     
-    const resp = await fetch(url, {
+    await fetch(url, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${process.env.TOKEN_IMG}`,
@@ -57,10 +61,6 @@ async function saveDB(data: ImageRecord[]) {
       },
       body: jsonString,
     })
-    
-    if (!resp.ok) {
-        console.error('Save DB Failed:', await resp.text())
-    }
   } catch (e) {
     console.error('Save DB error:', e)
   }
@@ -79,7 +79,6 @@ export const store = {
     list.unshift(record)
     if (list.length > 2000) list.pop()
     memoryCache = list
-    // [修复] 必须 await，否则 Serverless 进程冻结会导致保存失败
     await saveDB(list)
   },
 
@@ -87,7 +86,6 @@ export const store = {
     let list = await store.getAll()
     const newList = list.filter(item => item.id !== id)
     memoryCache = newList
-    // [修复] 必须 await
     await saveDB(newList)
   }
 }
